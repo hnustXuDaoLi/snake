@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SnakeGame.html</title>
+
+<meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
+<meta http-equiv="description" content="this is my page">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+<!--<link rel="stylesheet" type="text/css" href="./styles.css">-->
+<!--text-shadow  阴影左边距离,上边距离,模糊度(越大越模糊),颜色-->
+<style type="text/css">
+body {
+	background: #9E9ED8;
+}
+
+h1 {
+	text-align: center;
+	font-family: "楷体";
+	text-shadow: 2px 2px 5px #000;
+	color: #fff;
+}
+.info{
+	background:#fff;
+	width:50%;
+	margin:0 auto;
+	font-size:16px;
+	font-family: "楷体";
+	text-align:center;
+	box-shadow:1px 2px 2px #000;
+}
+</style>
+</head>
+
+<body>
+	<h1>贪吃蛇游戏</h1>
+	<div align=center>
+		<div class="info">分数:<span id="scoreSpan"></span>  速度:
+		<span id="speedSpan"></span></div>
+		<canvas align=center id="myCanvas" width="450" height="450"
+			style="border:1px solid #101530; background:#3B4684 ">
+		</canvas>
+		<audio src="music/1.mp3" id="start"></audio>
+		<audio src="music/bg.mp3" id="bg"></audio>
+		<audio src="music/hao.wav" id="death"></audio>
+		<audio src="music/boli.mp3" id="break"></audio>
+	</div>
+	<!--
+		 第一部分：可见的部分
+		 1.绘制表格   长30  宽30  每个正方形的格子边长15
+		 2.在第一行画一条蛇
+		 3.在最中央画一个食物
+		 
+		 第二部分：让蛇动起来
+		 1.先让蛇头部可以动
+		 2.让身体跟着头一起动(算法)
+		 3.让蛇可以吃食物
+		 	(1)增加身体长度
+		 	(2)产生新的食物
+		 	(3)将食物产生的位置随机
+		 第三部分：(自动运行,判断蛇的死亡)
+	 -->
+	<script type="text/javascript">
+		//获取绘图的环境
+		var context = document.getElementById("myCanvas");
+		var cxt = context.getContext("2d");
+		var width = 15;
+		var flag = false;
+		var score = 0;
+		var speed = 500;
+		//画制一个表格 30 30
+		//绘图前,需要清空画板
+		cxt.clearRect(0, 0, 450, 450);
+		cxt.strokeStyle = "white";
+		//代表蛇的身体节点
+		//x 横坐标  y 纵坐标  f代表移动的方向
+		//f 上2   下-2  左1  右-1
+		function Cell(x, y, f) {
+			this.x = x;
+			this.y = y;
+			this.f = f;
+		}
+		//定义食物对象
+		function Food(x, y) {
+			this.x = x;
+			this.y = y;
+		}
+		//在中间产生一个食物
+		var food = new Food(15, 15);
+			
+		//初始化蛇的身体
+		var snake = [];//蛇   数组
+		var length = 6;
+		//f 上2   下-2  左1  右-1
+		for ( var i = 0; i < length; i++) {
+			snake[i] = new Cell(i, 0, -1);
+		}
+		//画制蛇的身体
+		function drawSnake() {
+			cxt.clearRect(0, 0, 450, 450);
+			cxt.strokeStyle = "white";
+		/*	//画30条横线
+			for ( var i = 0; i < 30; i++) {
+				cxt.beginPath();//表示开始路径
+				cxt.moveTo(0, i * 15);//将画笔移动到某个位置
+				cxt.lineTo(450, i * 15);//线需要划到的位置
+				cxt.closePath();
+				cxt.stroke();//画制
+			}
+			//画30条竖线
+			for ( var i = 0; i < 30; i++) {
+				cxt.beginPath();
+				cxt.moveTo(i * 15, 0);
+				cxt.lineTo(i * 15, 450);
+				cxt.closePath();
+				cxt.stroke();
+			}
+			*/
+			for ( var i = 0; i < snake.length; i++) {
+				cxt.fillStyle = "black";
+				if (i == snake.length - 1) {
+					cxt.fillStyle = "red";
+				}
+				cxt.beginPath();
+				cxt.rect(snake[i].x * width, snake[i].y * width, width, width);
+				cxt.closePath();
+				cxt.fill();
+			}
+			//如果吃到了食物
+			var head = snake[snake.length-1];
+			if(head.x == food.x && head.y == food.y){
+			document.getElementById("bg").play();
+				//重新产生食物
+				randomFood();
+				var newCell = new Cell(head.x,head.y,head.f);
+				switch(newCell.f){
+					case 2:newCell.y--;break;//上
+					case 1:newCell.x--;break;//左
+					case -2:newCell.y++;break;//下
+					case -1:newCell.x++;break;//右
+				}
+				snake[snake.length] = newCell;
+				score += 10;
+				if(speed != 50){
+					speed -= 30;
+				}
+			}
+			document.getElementById("scoreSpan").innerHTML = score;
+			//每500毫秒跑一个格子   1秒能跑多少个  1000/500
+			document.getElementById("speedSpan").innerHTML = Math.round(1000/speed*100)/100+"c/s";
+			cxt.fillStyle = "green";
+			cxt.beginPath();
+			cxt.rect(food.x * width, food.y * width, width, width);
+			cxt.closePath();
+			cxt.fill();
+		}
+
+		//监听键盘事件
+		document.onkeydown = function(e) {
+			var code = e.keyCode;
+			//左37  上38  右39  下40
+			//alert(code);
+			var direction;//方向
+			switch (code) {
+				case 37:direction = 1;break;
+				case 38:direction = 2;break;
+				case 39:direction = -1;break;
+				case 40:direction = -2;break;
+			}
+			//空格  控制暂停和继续
+			if(code == 32){
+				flag = !flag;
+			}
+			var head = snake[snake.length-1];
+			if((head.f+direction)!=0 && code>=37 && code<=40){
+				moveSnake(direction);
+			}
+		}
+		//移动蛇的方法
+		function moveSnake(direction) {
+			if(!flag){
+				return false;
+			}
+			var newSnake = [];
+			var head = snake[snake.length - 1];
+			var newCell = new Cell(head.x,head.y,head.f);
+			for(var i = 1; i < snake.length; i++){
+				newSnake[i-1] = snake[i];
+			}
+			newSnake[snake.length-1] = newCell;
+			newCell.f = direction;
+			switch (direction) {
+				case 2:newCell.y--;break;//上
+				case 1:newCell.x--;break;//左
+				case -2:newCell.y++;break;//下
+				case -1:newCell.x++;break;//右
+			}
+			snake = newSnake;
+			if(checkDeath()){
+				drawSnake();
+			}
+		}
+		//产生随机的食物
+		function randomFood(){
+			var foodX = Math.ceil(Math.random()*28)+1;
+			var foodY = Math.ceil(Math.random()*28)+1;
+			//判断产生的食物是否跟蛇的身体有冲突
+			for(var i = 0; i < snake.length; i++){
+				//蛇的节点中的坐标跟食物的坐标重叠
+				if(snake[i].x==foodX && snake[i].y==foodY){
+					randomFood();
+				}
+			}
+			food = new Food(foodX,foodY);
+		}
+		function moveClock(){
+			moveSnake(snake[snake.length-1].f);
+			setTimeout("moveClock()",speed);
+		}
+		function checkDeath(){
+			var head = snake[snake.length-1];
+			//判断是不是跨过了边界
+			if(head.x>=30 || head.y>=30 || head.x<0 || head.y<0){
+				document.getElementById("break").play();
+				alert("撞墙!");
+				window.location.reload();
+				flag = false;
+				return false;
+			}
+			//判断是不是咬了自己
+			for(var i = 0; i < snake.length-1; i++){
+				if(head.x==snake[i].x && head.y==snake[i].y){
+					document.getElementById("death").play();
+					alert("咬到自己!");
+					window.location.reload();
+					flag = false;
+					return false;
+				}
+			}
+			return true;
+		}
+		drawSnake();
+		moveClock();
+		document.getElementById("start").play();
+	</script>
+</body>
+</html>
